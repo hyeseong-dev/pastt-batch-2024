@@ -135,105 +135,7 @@ Mermaid 다이어그램을 통해 각 테이블 간 관계를 시각적으로 �
 
 ### Mermaid ERD 코드
 
-```mermaid
-erDiagram
-    package {
-        int package_seq PK "패키지 순번"
-        varchar package_name "패키지 이름"
-        int count "이용권 수"
-        int period "기간(일)"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    pass {
-        int pass_seq PK "이용권 순번"
-        int package_seq FK "패키지 순번"
-        varchar user_id FK "사용자 ID"
-        varchar status "상태"
-        int remaining_count "잔여 이용권 수"
-        timestamp started_at "시작 일시"
-        timestamp ended_at "종료 일시"
-        timestamp expired_at "만료 일시"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    bulk_pass {
-        int bulk_pass_seq PK "대량 이용권 순번"
-        int package_seq FK "패키지 순번"
-        varchar user_group_id "사용자 그룹 ID"
-        varchar status "상태"
-        int count "이용권 수"
-        timestamp started_at "시작 일시"
-        timestamp ended_at "종료 일시"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    booking {
-        int booking_seq PK "예약 순번"
-        int pass_seq FK "이용권 순번"
-        varchar user_id FK "사용자 ID"
-        varchar status "상태"
-        tinyint used_pass "이용권 사용 여부"
-        tinyint attended "출석 여부"
-        timestamp started_at "시작 일시"
-        timestamp ended_at "종료 일시"
-        timestamp cancelled_at "취소 일시"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    user {
-        varchar user_id PK "사용자 ID"
-        varchar user_name "사용자 이름"
-        varchar status "상태"
-        varchar phone "연락처"
-        text meta "메타 정보"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    user_group_mapping {
-        varchar user_group_id PK "사용자 그룹 ID"
-        varchar user_id FK "사용자 ID"
-        varchar user_group_name "사용자 그룹 이름"
-        varchar description "설명"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    notification {
-        int notification_seq PK "알람 순번"
-        varchar uuid "사용자 UUID (카카오톡)"
-        varchar event "이벤트"
-        varchar text "알람 내용"
-        tinyint sent "발송 여부"
-        timestamp sent_at "발송 일시"
-        timestamp created_at "생성 일시"
-        timestamp modified_at "수정 일시"
-    }
-
-    statistics {
-        int statistics_seq PK "통계 순번"
-        timestamp statistics_at "통계 일시"
-        int all_count "전체 횟수"
-        int attended_count "출석 횟수"
-        int cancelled_count "취소 횟수"
-    }
-
-    package ||--o{ pass : contains
-    package ||--o{ bulk_pass : contains
-    pass ||--o{ booking : used_in
-    user ||--o{ pass : owns
-    user ||--o{ booking : books
-    user ||--o{ user_group_mapping : belongs_to
-    user_group_mapping ||--o{ bulk_pass : manages
-    user ||--o{ notification : notified_with
-```
-
-### 설명
+#### 설명
 
 1. **`package`와 `pass`, `bulk_pass`**:  
    `package` 테이블은 여러 `pass`와 `bulk_pass`를 포함할 수 있습니다. `package_seq`를 통해 각각의 이용권(`pass`)과 대량 이용권(`bulk_pass`)에 연결됩니다.
@@ -254,9 +156,9 @@ erDiagram
 
 </details>
 
-<<<<<<< HEAD
-=======
-## Process
+<details>
+    <summary>프로세스 시퀀스</summary>
+
 #### 이용권 만료
 ```mermaid
 sequenceDiagram
@@ -284,6 +186,14 @@ sequenceDiagram
     Batch->>DB: 해당 사용자 이용권 추가
 ```
 
+이 시나리오는 여러 사용자에게 일괄적으로 이용권을 지급하는 과정을 나타냅니다.
+
+1) User → DB: 사용자가 이용권을 일괄 지급하도록 등록 요청을 보냅니다.
+2) Batch → DB: Batch 프로세스가 정기적으로 일괄 지급할 이용권을 조회합니다.
+3) DB → Batch: DB에서 Batch로 조회된 이용권 데이터를 응답합니다.
+4) Batch → DB: Batch 프로세스가 조회된 사용자에게 이용권을 추가하여 지급을 완료합니다.
+
+
 #### 수업 전 알림
 ```mermaid
 sequenceDiagram
@@ -306,6 +216,13 @@ sequenceDiagram
     deactivate Messenger
 ```
 
+1) Batch → DB: Batch 프로세스가 예약된 수업과 사용자 정보를 조회합니다.
+2) DB → Batch: DB는 예약된 수업과 사용자 정보를 Batch에 응답합니다.
+3) Batch → DB: Batch가 알림을 보낼 대상 사용자를 DB에 추가합니다.
+4) Batch → DB: 추가된 알림 대상을 조회하여 Batch가 알림 전송 준비를 합니다.
+5) Batch → Messenger: Batch는 메신저(Messenger) 시스템에 알림 전송 요청을 보냅니다.
+6) Messenger → Batch: 메신저 시스템은 알림이 성공적으로 전송되었음을 Batch에 응답합니다.
+
 #### 수업 후 이용권 차감
 ```mermaid
 sequenceDiagram
@@ -318,4 +235,9 @@ sequenceDiagram
     Batch->>DB: 사용자 별 이용권 차감
 ```
 
+1) Batch → DB: Batch 프로세스가 예약된 수업과 사용자 정보를 조회합니다.
+2) DB → Batch: DB는 예약된 수업과 사용자 정보를 Batch에 응답합니다.
+3) Batch → DB: Batch 프로세스는 각 사용자별로 이용권을 차감하여 업데이트합니다.
+
+</details>
 

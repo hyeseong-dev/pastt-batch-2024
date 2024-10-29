@@ -1,0 +1,28 @@
+# Ignore Maven and Gradle directories
+target/
+build/
+
+# Ignore version control directories
+.git/
+.gitignore
+
+# Ignore OS and IDE-related files
+*.swp
+*.DS_Store
+*.idea/
+*.vscode/
+*.classpath
+*.project
+*.settings/
+
+# Ignore temporary files
+*.tmp
+*.log
+
+# Ignore test files and configurations
+**/test/
+**/test-output/
+
+# Ignore application properties if sensitive
+application-*.properties
+application-*.yml
